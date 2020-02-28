@@ -1,5 +1,5 @@
 #!/bin/bash
-#cntlm -c /etc/cntlm.conf -I -M http://westproxy.northgrum.com
+#cntlm -c /etc/cntlm.conf -I -M http://proxy.example.com
 FILE_NAME="EPELTEST`date '+%Y%m%d'`";
 LOG_FILE="/tmp/${FILE_NAME}.log";
 ALL_REPOS="rhel-7-server-extras-rpms \
