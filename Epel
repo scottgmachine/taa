@@ -1,0 +1,65 @@
+#!/bin/bash
+#cntlm -c /etc/cntlm.conf -I -M http://westproxy.northgrum.com
+FILE_NAME="EPELTEST`date '+%Y%m%d'`";
+LOG_FILE="/tmp/${FILE_NAME}.log";
+ALL_REPOS="rhel-7-server-extras-rpms \
+           rhel-7-server-optional-rpms \
+           rhel-7-server-rh-common-rpms \
+           rhel-7-server-rpms \
+           rhel-7-server-supplementary-rpms";
+ADDON="epel
+       epel-debuginfo
+       epel-source";
+EXTRA="bwm-ng iftop ipsec-tools";
+
+clear_line(){
+  echo "TIMING: `date '+%Y%m%d-%H:%M'`" >> $LOG_FILE 2>&1;
+  echo -ne "\033[2K";
+}
+##################################################################
+for REPO_NAME in $EXTRA; do
+   clear_line
+   echo -ne "##### Downloading: $REPO_NAME #####\r";
+   /usr/bin/repotrack --repoid=epel $REPO_NAME -p /repo/epel --newest >> $LOG_FILE 2>&1;
+done;
+
+###################################################################
+for RHEL_NAME in $ALL_REPOS; do
+   clear_line
+   echo -ne "##### Downloading: $RHEL_NAME #####\r";
+   /usr/bin/reposync --plugins -r $RHEL_NAME -p /repo --newest-only >> $LOG_FILE 2>&1;
+done;
+###########################################################################################################
+#n=0
+#until [ $n -ge 5 ]
+#do
+#   /usr/bin/repotrack $EXTRA --arch=x86_64 --newest --download_path=/opt/epel/Packages >> $LOG_FILE 2>&1 && break # substitute your command here
+#   n=$[$n+1]
+#done;
+
+
+#for $EXTRA in $ADDON; do
+#    clear_line
+#    echo -ne "###### Downloading: $EXTRA #####\r";
+#    /usr/bin/repotrack $EXTRA --newest --download_path=/repo/ >> $LOG_FILE 2>&1;
+#done; 
+######################################################################
+clear_line
+echo -ne '##### Creating/Updating Local Repository #####\r';
+createrepo --update --unique-md-filenames /repo >> $LOG_FILE 2>&1;
+find /repo -type d | xargs -i{} chmod 755 {} >> $LOG_FILE 2>&1;
+find /repo -type f | xargs -i{} chmod a+r {} >> $LOG_FILE 2>&1;
+######################################################################
+clear_line
+echo -ne '##### Calculating Checksums #####\r';
+rm /repo/checksums.md5 >> $LOG_FILE 2>&1;
+find /repo -type f | grep -v checksums.md5 | sort | xargs -i{} md5sum --text {} | \
+                sed 's:/repo/::g' | sponge /repo/checksums.md5
+
+#find /repo -type f | grep -v checksums.md5 | sort | xargs -i{} md5sum --text {} | \
+
+#		sed 's:/repo/::g' >> /repo/checksums.md5;
+chmod 644 /repo/checksums.md5 >> $LOG_FILE 2>&1;
+######################################################################
+clear_line
+echo '##### The Repository Has been Created #####';
